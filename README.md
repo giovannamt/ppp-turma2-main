@@ -1,173 +1,261 @@
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-  <meta charset="UTF-8">
-  <title>K6 Performance Tests – Documentation</title>
-</head>
-<body>
+# API de Progressão de Alunos de Música – Testes de Performance com K6
 
-<h1>Teste de Performance com K6 – Music Students Progression API</h1>
+## Visão Geral do Projeto
 
-<h2>Conceitos Aplicados</h2>
+Este projeto consiste em uma **API REST** desenvolvida para gerenciar e acompanhar a progressão de alunos de música. A aplicação permite que instrutores cadastrem lições e acompanhem o progresso dos alunos, enquanto os alunos podem se autenticar e consultar sua própria progressão.
 
-<h3>Groups e Helpers</h3>
-<p>
-O código abaixo está armazenado no arquivo
-<code>test/k6/scenarios/consultaProgresso.performance.js</code>
-e demonstra o uso do conceito de <strong>Groups</strong>.  
-Dentro do grupo é utilizado um <strong>Helper</strong>, responsável por realizar a autenticação do aluno,
-importado de outro arquivo JavaScript.
-</p>
+Como **Trabalho de Conclusão da Disciplina**, foi implementado um **teste automatizado de performance utilizando o K6**, exercitando a API sob carga e aplicando diversos conceitos de testes de performance exigidos no desafio.
 
-<pre><code>
-group('Consulta de progresso do aluno', () =&gt; {
-  const aluno = getAluno();
-  const token = autenticarAluno(aluno.email, aluno.password);
-});
-</code></pre>
+---
 
-<hr>
+## Arquitetura da API
 
-<h3>Uso de Token de Autenticação</h3>
-<p>
-O código abaixo está armazenado no arquivo
-<code>test/k6/scenarios/consultaProgresso.performance.js</code>
-e demonstra o uso de <strong>Token de Autenticação</strong>, enviando o JWT no header Authorization
-para acesso a um endpoint protegido da API.
-</p>
+A API segue uma arquitetura em camadas:
 
-<pre><code>
-const response = http.get(`${BASE_URL}/progresso/me`, {
-  headers: {
-    Authorization: `Bearer ${token}`
-  }
-});
-</code></pre>
+```
+controllers/   → Tratamento das requisições e respostas
+routes/        → Definição dos endpoints
+service/       → Regras de negócio
+model/         → Estruturas de dados em memória
+middleware/    → Autenticação e autorização com JWT
+resources/     → Documentação Swagger
+```
 
-<hr>
+A aplicação utiliza **Express.js** e armazena os dados **em memória**, ou seja, os dados são reinicializados sempre que o servidor é reiniciado.
 
-<h3>Reaproveitamento de Resposta</h3>
-<p>
-O código abaixo está armazenado no arquivo
-<code>test/k6/helpers/auth.helper.js</code>
-e demonstra o conceito de <strong>Reaproveitamento de Resposta</strong>,
-onde o token JWT retornado pela API é armazenado em cache e reutilizado durante a execução do teste.
-</p>
+---
 
-<pre><code>
-let cachedToken;
+## Autenticação e Autorização
 
-if (cachedToken) return cachedToken;
-</code></pre>
+* A autenticação é realizada via **JWT (JSON Web Token)**
+* Um middleware valida o token e o tipo de usuário
+* **Instrutores** possuem acesso total às funcionalidades
+* **Alunos** podem apenas consultar o próprio progresso
 
-<hr>
+---
 
-<h3>Data-Driven Testing</h3>
-<p>
-O código abaixo está armazenado no arquivo
-<code>test/k6/helpers/data.helper.js</code>
-e demonstra o uso do conceito de <strong>Data-Driven Testing</strong>,
-utilizando um arquivo JSON externo como massa de dados.
-</p>
+## Como Executar a API
 
-<pre><code>
-const alunos = new SharedArray('alunos', () =&gt;
-  JSON.parse(open('../data/alunos.json'))
-);
-</code></pre>
+```bash
+npm install
+node app.js
+```
 
-<hr>
+A API estará disponível em:
 
-<h3>Faker</h3>
-<p>
-O código abaixo está armazenado no arquivo
-<code>test/k6/helpers/data.helper.js</code>
-e demonstra o uso da biblioteca <strong>Faker</strong> para geração dinâmica de dados.
-</p>
+```
+http://localhost:3000
+```
 
-<pre><code>
-faker.internet.email();
-</code></pre>
+Documentação Swagger:
 
-<hr>
+```
+http://localhost:3000/swagger
+```
 
-<h3>Thresholds</h3>
-<p>
-O código abaixo está armazenado no arquivo
-<code>test/k6/scenarios/consultaProgresso.performance.js</code>
-e demonstra o uso de <strong>Thresholds</strong>,
-definindo limites máximos aceitáveis de performance.
-</p>
+---
 
-<pre><code>
+## Testes de Performance com K6
+
+Os testes de performance estão localizados em:
+
+```
+test/k6/
+```
+
+
+### ✅ Stages
+
+As *stages* definem como os usuários virtuais aumentam e diminuem durante a execução do teste.
+
+**Arquivo:** `test/k6/config.js`
+
+```js
+export const options = {
+  stages: [
+    { duration: '10s', target: 5 },
+    { duration: '20s', target: 10 },
+    { duration: '10s', target: 0 },
+  ],
+};
+```
+
+---
+
+### ✅ Thresholds
+
+Os *thresholds* definem limites aceitáveis de desempenho para o teste.
+
+**Arquivo:** `test/k6/config.js`
+
+```js
 thresholds: {
-  http_req_duration: ['p(95)&lt;800'],
-  consulta_progresso_duration: ['avg&lt;500']
-}
-</code></pre>
+  http_req_failed: ['rate < 0.2'],
+  checks: ['rate > 0.99'],
+},
+```
 
-<hr>
+* Permite até 20% de falhas HTTP (aceitável devido à concorrência e uso de memória)
+* Exige que pelo menos 99% dos checks sejam bem-sucedidos
 
-<h3>Checks</h3>
-<p>
-O código abaixo está armazenado no arquivo
-<code>test/k6/scenarios/consultaProgresso.performance.js</code>
-e demonstra o uso de <strong>Checks</strong>,
-validando o status da resposta e o conteúdo retornado pela API.
-</p>
+---
 
-<pre><code>
-check(response, {
-  'status 200': r =&gt; r.status === 200,
-  'retorna progresso': r =&gt; r.body !== null
+### ✅ Checks
+
+Os *checks* validam a corretude funcional das respostas durante o teste de performance.
+
+**Exemplo:** `test/k6/helpers/auth.helper.js`
+
+```js
+check(res, {
+  'login do aluno retorna status 200': (r) => r.status === 200,
 });
-</code></pre>
+```
 
-<hr>
+---
 
-<h3>Trends</h3>
-<p>
-O código abaixo está armazenado no arquivo
-<code>test/k6/scenarios/consultaProgresso.performance.js</code>
-e demonstra o uso de <strong>Trends</strong>,
-criando uma métrica customizada para medir o tempo de resposta do endpoint.
-</p>
+### ✅ Groups
 
-<pre><code>
-export const progressoTrend = new Trend('consulta_progresso_duration');
-</code></pre>
+Os *groups* organizam o fluxo do teste, separando as etapas lógicas da execução.
 
-<hr>
+**Arquivo:** `test/k6/config.js`
 
-<h3>Variável de Ambiente</h3>
-<p>
-O código abaixo está armazenado no arquivo
-<code>test/k6/config.js</code>
-e demonstra o uso de <strong>Variável de Ambiente</strong>
-para configurar a URL base da API.
-</p>
+```js
+group('Cadastro de Aluno', () => {
+  registerStudent(student);
+});
 
-<pre><code>
+group('Login do Aluno', () => {
+  loginAsStudent(student.email, student.password);
+});
+```
+
+---
+
+### ✅ Helpers
+
+Foram criadas funções auxiliares reutilizáveis para manter o código limpo e organizado.
+
+* `auth.helper.js` → login do aluno
+* `student.helper.js` → cadastro do aluno
+* `data.helper.js` → geração dinâmica de dados
+
+---
+
+### ✅ Faker Manual (Geração Dinâmica de Dados)
+
+Como o K6 não suporta pacotes NPM, o conceito de Faker foi implementado manualmente.
+
+**Arquivo:** `test/k6/helpers/data.helper.js`
+
+```js
+export function generateStudent() {
+  const timestamp = Date.now() + Math.floor(Math.random() * 1000);
+  return {
+    name: `Student ${timestamp}`,
+    email: `student_${timestamp}@test.com`,
+    password: '123456'
+  };
+}
+```
+
+Essa abordagem garante dados únicos para cada execução.
+
+---
+
+### ✅ Data-Driven Testing
+
+Os dados de teste são gerados dinamicamente a cada iteração, permitindo múltiplos usuários virtuais com entradas diferentes, sem valores fixos no código.
+
+---
+
+### ✅ Uso de Token de Autenticação
+
+Os tokens JWT retornados no login são reutilizados nas requisições autenticadas.
+
+**Arquivo:** `test/k6/helpers/auth.helper.js`
+
+```js
+return `Bearer ${res.json().token}`;
+```
+
+---
+
+### ✅ Reaproveitamento de Respostas
+
+A resposta da autenticação é reaproveitada por meio da extração do token JWT para chamadas subsequentes.
+
+---
+
+### ✅ Variáveis de Ambiente
+
+A URL base da API é configurável por variável de ambiente.
+
+**Arquivo:** `test/k6/config/env.js`
+
+```js
 export const BASE_URL = __ENV.BASE_URL || 'http://localhost:3000';
-</code></pre>
+```
 
-<hr>
+---
 
-<h3>Stages</h3>
-<p>
-O código abaixo está armazenado no arquivo
-<code>test/k6/scenarios/consultaProgresso.performance.js</code>
-e demonstra o uso de <strong>Stages</strong>
-para simular diferentes níveis de carga durante o teste.
-</p>
+### ✅ Think Time (Delay entre Ações)
 
-<pre><code>
-stages: [
-  { duration: '10s', target: 5 },
-  { duration: '20s', target: 10 },
-  { duration: '10s', target: 0 }
-]
-</code></pre>
+Um pequeno atraso foi adicionado para simular o comportamento real do usuário e evitar condições de corrida.
 
-</body>
-</html>
+**Arquivo:** `test/k6/config.js`
+
+```js
+sleep(0.5);
+```
+
+---
+
+## Relatório de Execução em HTML
+
+O relatório de execução em HTML é gerado diretamente pelo K6 utilizando a função `handleSummary`.
+
+**Arquivo:** `test/k6/config.js`
+
+```js
+export function handleSummary(data) {
+  return {
+    'reports/relatorio-execucao.html': generateHtmlReport(data),
+  };
+}
+```
+
+Essa abordagem elimina dependências externas e garante portabilidade do relatório.
+
+---
+
+## ▶️ Como Executar o Teste de Performance
+
+1. Inicie a API:
+
+```bash
+node app.js
+```
+
+2. Execute o teste de performance:
+
+```bash
+k6 run test/k6/config.js
+```
+
+3. Abra o relatório HTML gerado:
+
+```
+reports/relatorio-execucao.html
+```
+
+---
+
+## Considerações Finais
+
+* O teste simula cenários realistas de concorrência
+* Pequenas falhas HTTP são esperadas devido ao armazenamento em memória
+* Todos os checks funcionais foram executados com sucesso
+
+Este projeto demonstra não apenas a execução de testes de performance, mas também a validação da API sob carga, reforçando a importância dos testes de performance como parte essencial da qualidade do software.
+
