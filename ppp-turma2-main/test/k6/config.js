@@ -17,11 +17,12 @@ export let options = {
 };
 
 const responseTime = new Trend('response_time');
-
 const BASE_URL = __ENV.BASE_URL || 'http://localhost:3000';
 
+const studentsData = students.default || students;
+
 export default function () {
-  students.forEach(student => {
+  studentsData.forEach(student => {
 
     group('Student Login', () => {
       const token = loginAsStudent(BASE_URL, student.email, student.password);
