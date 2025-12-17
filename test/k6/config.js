@@ -3,9 +3,7 @@ import { registerStudent } from './helpers/student.helper.js';
 import { loginAsStudent } from './helpers/auth.helper.js';
 import { generateStudent } from './helpers/data.helper.js';
 
-/* =========================
-   K6 OPTIONS
-========================= */
+
 export const options = {
   stages: [
     { duration: '10s', target: 5 },
@@ -18,9 +16,7 @@ export const options = {
   },
 };
 
-/* =========================
-   DEFAULT TEST FUNCTION
-========================= */
+
 export default function () {
   const student = generateStudent();
 
@@ -35,9 +31,7 @@ export default function () {
   });
 }
 
-/* =========================
-   HTML REPORT
-========================= */
+
 export function handleSummary(data) {
   return {
     'reports/relatorio-execucao.html': generateHtmlReport(data),

@@ -10,11 +10,6 @@ export function registerStudent(student) {
   );
 
   check(res, {
-    'student registered': (r) => r.status === 201 || r.status === 400,
-    
-  });
-
-  check(res, {
   'student registered or already exists': (r) =>
     r.status === 201 || r.status === 400,
 });
