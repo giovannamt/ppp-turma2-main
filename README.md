@@ -2,7 +2,7 @@
 
 ## Visão Geral do Projeto
 
-Este projeto consiste em uma **API REST** desenvolvida para gerenciar e acompanhar a progressão de alunos de música. A aplicação permite que instrutores cadastrem lições e acompanhem o progresso dos alunos, enquanto os alunos podem se autenticar e consultar sua própria progressão.
+Este projeto consiste em uma **API REST** desenvolvida pelo professor Júlio de Lima e ajustada por mim para gerenciar e acompanhar a progressão de alunos de música. A aplicação permite que instrutores cadastrem lições e acompanhem o progresso dos alunos, enquanto os alunos podem se autenticar e consultar sua própria progressão.
 
 Como **Trabalho de Conclusão da Disciplina**, foi implementado um **teste automatizado de performance utilizando o K6**, exercitando a API sob carga e aplicando diversos conceitos de testes de performance exigidos no desafio.
 
