@@ -1,13 +1,14 @@
-const instructors = [];
-const Instructor = require('../model/instructor');
+const db = require('../model/database');
+const jwt = require('jsonwebtoken');
 
-module.exports = {
-  create: (name, email, password) => {
-    const id = instructors.length + 1;
-    const instructor = new Instructor(id, name, email, password);
-    instructors.push(instructor);
-    return instructor;
-  },
-  findByEmail: (email) => instructors.find(i => i.email === email),
-  getAll: () => instructors,
+exports.register = (data) => {
+  db.instructors.push(data);
+  return data;
+};
+
+exports.login = ({ email }) => {
+  return jwt.sign(
+    { email, role: 'instructor' },
+    'secret'
+  );
 };

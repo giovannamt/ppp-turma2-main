@@ -1,10 +1,14 @@
 const express = require('express');
 const router = express.Router();
 const instructorController = require('../controllers/instructorController');
-const { authenticate, authorizeInstructor } = require('../middleware/auth');
+const authMiddleware = require('../middleware/authMiddleware');
 
 router.post('/register', instructorController.register);
 router.post('/login', instructorController.login);
-router.get('/', authenticate, authorizeInstructor, instructorController.getAll);
+
+// rotas protegidas (somente instrutor)
+router.get('/secure', authMiddleware('instructor'), (req, res) => {
+  res.json({ message: 'Instructor access granted' });
+});
 
 module.exports = router;
